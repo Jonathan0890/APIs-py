@@ -1,0 +1,22 @@
+#Ignora archivo de python
+__pycache__/
+*.pyc
+
+#Ignora archivo y carpetas de configuracion de entorno
+venv/
+.env
+
+#Ignora archivo
+Dockerfile
+.dockerignore
+
+#Ignora archivo de control
+.git
+.gitignore
+
+#Ignora carpetas de test y ejemplos
+test/
+examples/
+
+#Ignora otros 
+.log
