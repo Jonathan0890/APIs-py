@@ -1,74 +1,82 @@
 from config import mysql
+from typing import Dict, List, Optional
+import logging
 
-def get_all_products():
-    """
-    Obtiene todos los productos de la base de datos.
-    """
+logger = logging.getLogger(__name__)
+
+def get_all_products() -> List[Dict]:
     try:
-        conn = mysql.connection
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM products")
+        cursor = mysql.connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM productos")
         products = cursor.fetchall()
         return products
     except Exception as e:
-        raise Exception(f"Error al obtener productos: {e}")
+        logger.error(f"Error al obtener productos: {e}")
+        raise Exception("No se pudieron obtener los productos")
 
-def get_product_by_id(product_id):
-    """
-    Obtiene un producto por su ID.
-    
-    """
+def get_product_by_id(product_id: int) -> Optional[Dict]:
     try:
-        conn = mysql.connection
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM products WHERE id = %s", (product_id,))
-        product = cursor.fetchone()
-        return product
+        cursor = mysql.connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM productos WHERE id_producto = %s", (product_id,))
+        return cursor.fetchone()
     except Exception as e:
-        raise Exception(f"Error al obtener el producto con ID {product_id}: {e}")
+        logger.error(f"Error al obtener producto {product_id}: {e}")
+        raise Exception(f"No se pudo obtener el producto con ID {product_id}")
 
-def create_product(data):
-    """
-    Crea un nuevo producto en la base de datos.
-    """
+def create_product(data: Dict) -> int:
+    required_fields = ['nombre', 'precio']
+    if not all(field in data for field in required_fields):
+        raise ValueError("Faltan campos obligatorios: nombre y precio")
+
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute("""
-            INSERT INTO products (name, price, category, description)
+            INSERT INTO productos (nombre, descripcion, precio, imagen)
             VALUES (%s, %s, %s, %s)
-        """, (data['name'], data['price'], data['category'], data['description']))
-        conn.commit()
-        return cursor.lastrowid  # Devuelve el ID del nuevo producto
+        """, (
+            data['nombre'],
+            data.get('descripcion', ''),
+            data['precio'],
+            data.get('imagen', '')
+        ))
+        mysql.connection.commit()
+        return cursor.lastrowid
     except Exception as e:
-        raise Exception(f"Error al crear el producto: {e}")
+        mysql.connection.rollback()
+        logger.error(f"Error al crear producto: {e}")
+        raise Exception("Error al crear el producto")
 
-def update_product(product_id, data):
-    """
-    Actualiza un producto existente.
-    """
+def update_product(product_id: int, data: Dict) -> bool:
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute("""
-            UPDATE products
-            SET name = %s, price = %s, category = %s, description = %s
-            WHERE id = %s
-        """, (data['name'], data['price'], data['category'], data['description'], product_id))
-        conn.commit()
-        return cursor.rowcount  # Número de filas afectadas
+            UPDATE productos
+            SET nombre = %s,
+                descripcion = %s,
+                precio = %s,
+                imagen = %s
+            WHERE id_producto = %s
+        """, (
+            data.get('nombre'),
+            data.get('descripcion'),
+            data.get('precio'),
+            data.get('imagen'),
+            product_id
+        ))
+        mysql.connection.commit()
+        return cursor.rowcount > 0
     except Exception as e:
-        raise Exception(f"Error al actualizar el producto con ID {product_id}: {e}")
+        mysql.connection.rollback()
+        logger.error(f"Error al actualizar producto {product_id}: {e}")
+        raise Exception(f"No se pudo actualizar el producto con ID {product_id}")
 
-def delete_product(product_id):
-    """
-    Elimina un producto por su ID.
-    """
+def delete_product(product_id: int) -> bool:
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM products WHERE id = %s", (product_id,))
-        conn.commit()
-        return cursor.rowcount  # Número de filas eliminadas
+        cursor = mysql.connection.cursor()
+        cursor.execute("DELETE FROM productos WHERE id_producto = %s", (product_id,))
+        mysql.connection.commit()
+        return cursor.rowcount > 0
     except Exception as e:
-        raise Exception(f"Error al eliminar el producto con ID {product_id}: {e}")
+        mysql.connection.rollback()
+        logger.error(f"Error al eliminar producto {product_id}: {e}")
+        raise Exception(f"No se pudo eliminar el producto con ID {product_id}")

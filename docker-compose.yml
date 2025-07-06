@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Servicio de base de datos MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: flask_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: product_db
+      MYSQL_USER: flask_user
+      MYSQL_PASSWORD: flask_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - flask_network
+
+  # Servicio de la aplicación Flask
+  flask_app:
+    build: .
+    container_name: flask_app
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: flask_user
+      MYSQL_PASSWORD: flask_password
+      MYSQL_DB: product_db
+      FLASK_ENV: development
+      SECRET_KEY: your-secret-key-here
+    depends_on:
+      - mysql
+    networks:
+      - flask_network
+    volumes:
+      - .:/app
+    command: python app.py
+
+  # Servicio opcional: phpMyAdmin para administrar la BD
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: flask_phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+    depends_on:
+      - mysql
+    networks:
+      - flask_network
+
+volumes:
+  mysql_data:
+
+networks:
+  flask_network:

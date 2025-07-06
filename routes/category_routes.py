@@ -1,63 +1,73 @@
 from flask import Blueprint, request, jsonify
-from config import mysql
+from service.service_category import (
+    get_all_categories,
+    get_category_by_id,
+    create_category,
+    update_category,
+    delete_category
+)
+import logging
 
 category_bp = Blueprint('category_bp', __name__)
+logger = logging.getLogger(__name__)
 
 @category_bp.route('/', methods=['GET'])
-def get_categories():
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM categorias")  # Cambio a la tabla 'categorias'
-    rows = cursor.fetchall()
-    column_names = [desc[0] for desc in cursor.description]
-    categories = [dict(zip(column_names, row)) for row in rows]
-    return jsonify(categories), 200
+def list_categories():
+    try:
+        categories = get_all_categories()
+        return jsonify({"success": True, "data": categories}), 200
+    except Exception as e:
+        logger.error(f"Error en list_categories: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-@category_bp.route('/<int:id_categoria>', methods=['GET'])
-def get_category(id_categoria):
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM categorias WHERE id_categoria = %s", (id_categoria,))  # Cambio en columna
-    row = cursor.fetchone()
-    if row:
-        column_names = [desc[0] for desc in cursor.description]
-        category = dict(zip(column_names, row))
-        return jsonify(category), 200
-    return jsonify({'error': 'Category not found'}), 404
+@category_bp.route('/<int:category_id>', methods=['GET'])
+def get_category(category_id):
+    try:
+        category = get_category_by_id(category_id)
+        if category:
+            return jsonify({"success": True, "data": category}), 200
+        return jsonify({"success": False, "message": "Categoría no encontrada"}), 404
+    except Exception as e:
+        logger.error(f"Error en get_category {category_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @category_bp.route('/', methods=['POST'])
-def create_category():
-    data = request.json
-    nombre = data.get('nombre')  # Cambio de 'name' a 'nombre'
+def add_category():
+    if not request.is_json:
+        return jsonify({"success": False, "message": "El contenido debe ser JSON"}), 400
+    data = request.get_json()
+    try:
+        new_id = create_category(data)
+        new_category = get_category_by_id(new_id)
+        return jsonify({"success": True, "message": "Categoría creada", "data": new_category}), 201
+    except ValueError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+    except Exception as e:
+        logger.error(f"Error en add_category: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO categorias (nombre)
-        VALUES (%s)
-    """, (nombre,))
-    conn.commit()
-    return jsonify({'message': 'Category created!'}), 201
+@category_bp.route('/<int:category_id>', methods=['PUT'])
+def modify_category(category_id):
+    if not request.is_json:
+        return jsonify({"success": False, "message": "El contenido debe ser JSON"}), 400
+    data = request.get_json()
+    try:
+        updated = update_category(category_id, data)
+        if updated:
+            updated_category = get_category_by_id(category_id)
+            return jsonify({"success": True, "message": "Categoría actualizada", "data": updated_category}), 200
+        return jsonify({"success": False, "message": "Categoría no encontrada"}), 404
+    except Exception as e:
+        logger.error(f"Error en modify_category {category_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-@category_bp.route('/<int:id_categoria>', methods=['PUT'])
-def update_category(id_categoria):
-    data = request.json
-    nombre = data.get('nombre')  # Cambio de 'name' a 'nombre'
-
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE categorias
-        SET nombre = %s
-        WHERE id_categoria = %s
-    """, (nombre, id_categoria))
-    conn.commit()
-    return jsonify({'message': 'Category updated!'}), 200
-
-@category_bp.route('/<int:id_categoria>', methods=['DELETE'])
-def delete_category(id_categoria):
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM categorias WHERE id_categoria = %s", (id_categoria,))
-    conn.commit()
-    return jsonify({'message': 'Category deleted!'}), 200
+@category_bp.route('/<int:category_id>', methods=['DELETE'])
+def remove_category(category_id):
+    try:
+        deleted = delete_category(category_id)
+        if deleted:
+            return jsonify({"success": True, "message": "Categoría eliminada"}), 200
+        return jsonify({"success": False, "message": "Categoría no encontrada"}), 404
+    except Exception as e:
+        logger.error(f"Error en remove_category {category_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500

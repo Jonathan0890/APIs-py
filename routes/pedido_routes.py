@@ -1,75 +1,89 @@
 from flask import Blueprint, request, jsonify
-from config import mysql
+from service.service_pedido import (
+    get_all_pedidos,
+    get_pedido_by_id,
+    create_pedido,
+    update_pedido,
+    delete_pedido
+)
+import logging
 
 pedido_bp = Blueprint('pedido_bp', __name__)
+logger = logging.getLogger(__name__)
 
 @pedido_bp.route('/', methods=['GET'])
-def get_pedidos():
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM pedidos")  # Consulta a la tabla 'pedidos'
-    rows = cursor.fetchall()
-    column_names = [desc[0] for desc in cursor.description]
-    pedidos = [dict(zip(column_names, row)) for row in rows]
-    return jsonify(pedidos), 200
+def list_pedidos():
+    try:
+        pedidos = get_all_pedidos()
+        return jsonify({
+            "success": True,
+            "data": pedidos,
+            "count": len(pedidos)
+        }), 200
+    except Exception as e:
+        logger.error(f"Error en list_pedidos: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-
-@pedido_bp.route('/<int:id_pedido>', methods=['GET'])
-def get_pedido(id_pedido):
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM pedidos WHERE id_pedido = %s", (id_pedido,))  # Usar columna correcta
-    row = cursor.fetchone()
-    if row:
-        column_names = [desc[0] for desc in cursor.description]
-        pedido = dict(zip(column_names, row))
-        return jsonify(pedido), 200
-    return jsonify({'error': 'Pedido not found'}), 404
-
+@pedido_bp.route('/<int:id>', methods=['GET'])
+def get_pedido(id):
+    try:
+        pedido = get_pedido_by_id(id)
+        if pedido:
+            return jsonify({"success": True, "data": pedido}), 200
+        return jsonify({"success": False, "message": "Pedido no encontrado"}), 404
+    except Exception as e:
+        logger.error(f"Error en get_pedido {id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @pedido_bp.route('/', methods=['POST'])
-def create_pedido():
-    data = request.json
-    id_cliente = data.get('id_cliente')
-    total = data.get('total')
+def add_pedido():
+    if not request.is_json:
+        return jsonify({"success": False, "message": "El contenido debe ser JSON"}), 400
 
-    if not id_cliente or not total:
-        return jsonify({'error': 'id_cliente and total are required fields'}), 400
+    data = request.get_json()
+    try:
+        new_id = create_pedido(data)
+        created = get_pedido_by_id(new_id)
+        return jsonify({
+            "success": True,
+            "message": "Pedido creado exitosamente",
+            "data": created
+        }), 201
+    except ValueError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+    except Exception as e:
+        logger.error(f"Error en add_pedido: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO pedidos (id_cliente, total)
-        VALUES (%s, %s)
-    """, (id_cliente, total))
-    conn.commit()
-    return jsonify({'message': 'Pedido created!'}), 201
+@pedido_bp.route('/<int:id>', methods=['PUT'])
+def modify_pedido(id):
+    if not request.is_json:
+        return jsonify({"success": False, "message": "El contenido debe ser JSON"}), 400
 
+    data = request.get_json()
+    try:
+        updated = update_pedido(id, data)
+        if updated:
+            refreshed = get_pedido_by_id(id)
+            return jsonify({
+                "success": True,
+                "message": "Pedido actualizado exitosamente",
+                "data": refreshed
+            }), 200
+        return jsonify({"success": False, "message": "Pedido no encontrado"}), 404
+    except ValueError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+    except Exception as e:
+        logger.error(f"Error en modify_pedido {id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-@pedido_bp.route('/<int:id_pedido>', methods=['PUT'])
-def update_pedido(id_pedido):
-    data = request.json
-    id_cliente = data.get('id_cliente')
-    total = data.get('total')
-
-    if not id_cliente or not total:
-        return jsonify({'error': 'id_cliente and total are required fields'}), 400
-
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE pedidos 
-        SET id_cliente = %s, total = %s
-        WHERE id_pedido = %s
-    """, (id_cliente, total, id_pedido))
-    conn.commit()
-    return jsonify({'message': 'Pedido updated!'}), 200
-
-
-@pedido_bp.route('/<int:id_pedido>', methods=['DELETE'])
-def delete_pedido(id_pedido):
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM pedidos WHERE id_pedido = %s", (id_pedido,))
-    conn.commit()
-    return jsonify({'message': 'Pedido deleted!'}), 200
+@pedido_bp.route('/<int:id>', methods=['DELETE'])
+def remove_pedido(id):
+    try:
+        deleted = delete_pedido(id)
+        if deleted:
+            return jsonify({"success": True, "message": "Pedido eliminado correctamente"}), 200
+        return jsonify({"success": False, "message": "Pedido no encontrado"}), 404
+    except Exception as e:
+        logger.error(f"Error en remove_pedido {id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500

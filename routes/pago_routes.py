@@ -1,105 +1,52 @@
 from flask import Blueprint, request, jsonify
-from config import mysql
-from datetime import datetime
+from service.service_pago import *
+import logging
 
 pago_bp = Blueprint('pago_bp', __name__)
+logger = logging.getLogger(__name__)
 
-# Obtener todos los pagos
 @pago_bp.route('/', methods=['GET'])
-def get_pagos():
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM pagos")
-    rows = cursor.fetchall()
-    column_names = [desc[0] for desc in cursor.description]
-    pagos = [dict(zip(column_names, row)) for row in rows]
-    return jsonify(pagos), 200
+def get_all():
+    pagos = get_all_pagos()
+    return jsonify({"success": True, "data": pagos}), 200
 
-# Obtener un pago específico
 @pago_bp.route('/<int:id_pago>', methods=['GET'])
-def get_pago(id_pago):
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM pagos WHERE id_pago = %s", (id_pago,))
-    row = cursor.fetchone()
-    if row:
-        column_names = [desc[0] for desc in cursor.description]
-        pago = dict(zip(column_names, row))
-        return jsonify(pago), 200
-    return jsonify({'error': 'Pago not found'}), 404
+def get_by_id(id_pago):
+    pago = get_pago_by_id(id_pago)
+    if pago:
+        return jsonify({"success": True, "data": pago}), 200
+    return jsonify({"success": False, "message": "Pago no encontrado"}), 404
 
-# Crear un nuevo pago
 @pago_bp.route('/', methods=['POST'])
-def create_pago():
+def create():
     data = request.json
-    id_pedido = data.get('id_pedido')
-    metodo_pago = data.get('metodo_pago')
-    estado_pago = data.get('estado_pago', 'pendiente')  # Valor por defecto
-    fecha_pago = datetime.now()  # Se asigna la fecha actual
+    if not data.get('id_pedido') or not data.get('metodo_pago'):
+        return jsonify({"success": False, "message": "id_pedido y metodo_pago son requeridos"}), 400
 
-    if not id_pedido or not metodo_pago:
-        return jsonify({'error': 'id_pedido and metodo_pago are required fields'}), 400
+    if data['metodo_pago'] not in ['tarjeta', 'paypal', 'transferencia']:
+        return jsonify({"success": False, "message": "metodo_pago inválido"}), 400
 
-    if metodo_pago not in ['tarjeta', 'paypal', 'transferencia']:
-        return jsonify({'error': 'Invalid metodo_pago. Must be tarjeta, paypal, or transferencia'}), 400
+    if data.get('estado_pago') and data['estado_pago'] not in ['pendiente', 'completado', 'fallido']:
+        return jsonify({"success": False, "message": "estado_pago inválido"}), 400
 
-    if estado_pago not in ['pendiente', 'completado', 'fallido']:
-        return jsonify({'error': 'Invalid estado_pago. Must be pendiente, completado, or fallido'}), 400
+    try:
+        new_id = create_pago(data)
+        return jsonify({"success": True, "message": "Pago creado", "id": new_id}), 201
+    except Exception as e:
+        logger.error(f"Error creando pago: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO pagos (id_pedido, metodo_pago, estado_pago, fecha_pago)
-        VALUES (%s, %s, %s, %s)
-    """, (id_pedido, metodo_pago, estado_pago, fecha_pago))
-    conn.commit()
-    return jsonify({'message': 'Pago created!'}), 201
-
-# Actualizar un pago existente
 @pago_bp.route('/<int:id_pago>', methods=['PUT'])
-def update_pago(id_pago):
+def update(id_pago):
     data = request.json
-    metodo_pago = data.get('metodo_pago')
-    estado_pago = data.get('estado_pago')
+    updated = update_pago(id_pago, data)
+    if updated:
+        return jsonify({"success": True, "message": "Pago actualizado"}), 200
+    return jsonify({"success": False, "message": "No se actualizó ningún campo"}), 400
 
-    if metodo_pago and metodo_pago not in ['tarjeta', 'paypal', 'transferencia']:
-        return jsonify({'error': 'Invalid metodo_pago. Must be tarjeta, paypal, or transferencia'}), 400
-
-    if estado_pago and estado_pago not in ['pendiente', 'completado', 'fallido']:
-        return jsonify({'error': 'Invalid estado_pago. Must be pendiente, completado, or fallido'}), 400
-
-    # Si no se especifica el estado, no cambiamos la fecha
-    fecha_pago = datetime.now() if estado_pago else None
-
-    conn = mysql.connection
-    cursor = conn.cursor()
-    update_fields = []
-    update_values = []
-
-    if metodo_pago:
-        update_fields.append("metodo_pago = %s")
-        update_values.append(metodo_pago)
-    if estado_pago:
-        update_fields.append("estado_pago = %s")
-        update_values.append(estado_pago)
-    if fecha_pago:
-        update_fields.append("fecha_pago = %s")
-        update_values.append(fecha_pago)
-
-    update_values.append(id_pago)
-    cursor.execute(f"""
-        UPDATE pagos
-        SET {', '.join(update_fields)}
-        WHERE id_pago = %s
-    """, update_values)
-    conn.commit()
-    return jsonify({'message': 'Pago updated!'}), 200
-
-# Eliminar un pago
 @pago_bp.route('/<int:id_pago>', methods=['DELETE'])
-def delete_pago(id_pago):
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM pagos WHERE id_pago = %s", (id_pago,))
-    conn.commit()
-    return jsonify({'message': 'Pago deleted!'}), 200
+def delete(id_pago):
+    deleted = delete_pago(id_pago)
+    if deleted:
+        return jsonify({"success": True, "message": "Pago eliminado"}), 200
+    return jsonify({"success": False, "message": "Pago no encontrado"}), 404
