@@ -1,20 +1,21 @@
 from flask import Blueprint, request, jsonify
-from config import mysql
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
+from service.service_user import (
+    get_all_users, get_user_by_id,
+    create_user, update_user,
+    delete_user, login_user
+)
 
 user_bp = Blueprint('user_bp', __name__)
 logger = logging.getLogger(__name__)
 
-# GET: Obtener todos los usuarioss
+# GET: Obtener todos los usuarios (restringido)
 @user_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_users():
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM clientes")
-        rows = cursor.fetchall()
-        column_names = [desc[0] for desc in cursor.description]
-        users = [dict(zip(column_names, row)) for row in rows]
+        users = get_all_users()
         return jsonify({"success": True, "data": users}), 200
     except Exception as e:
         logger.error(f"Error en get_users: {e}")
@@ -22,15 +23,11 @@ def get_users():
 
 # GET: Obtener usuario por ID
 @user_bp.route('/<int:id_cliente>', methods=['GET'])
+@jwt_required()
 def get_user(id_cliente):
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM clientes WHERE id_cliente = %s", (id_cliente,))
-        row = cursor.fetchone()
-        if row:
-            column_names = [desc[0] for desc in cursor.description]
-            user = dict(zip(column_names, row))
+        user = get_user_by_id(id_cliente)
+        if user:
             return jsonify({"success": True, "data": user}), 200
         return jsonify({"success": False, "message": "Usuario no encontrado"}), 404
     except Exception as e:
@@ -39,73 +36,60 @@ def get_user(id_cliente):
 
 # POST: Crear nuevo usuario
 @user_bp.route('/', methods=['POST'])
-def create_user():
+def create_user_route():
     data = request.json
     required_fields = ['nombre', 'contrasena', 'email']
     if not all(data.get(field) for field in required_fields):
         return jsonify({"success": False, "message": "Faltan campos requeridos"}), 400
-
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO clientes (nombre, contrasena, email, direccion, ciudad, estado, pais)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (
-            data.get('nombre'),
-            data.get('contrasena'),
-            data.get('email'),
-            data.get('direccion', ''),
-            data.get('ciudad', ''),
-            data.get('estado', ''),
-            data.get('pais', '')
-        ))
-        conn.commit()
-        return jsonify({"success": True, "message": "Usuario creado correctamente"}), 201
+        user_id = create_user(data)
+        return jsonify({"success": True, "message": "Usuario creado correctamente", "id": user_id}), 201
     except Exception as e:
         logger.error(f"Error en create_user: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
+# POST: Login de usuario
+@user_bp.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('contrasena')
+
+    if not email or not password:
+        return jsonify({"success": False, "message": "Email y contraseña requeridos"}), 400
+
+    result = login_user(email, password)
+    if result:
+        return jsonify({
+            "success": True,
+            "token": result['token'],
+            "user": result['user']
+        }), 200
+    return jsonify({"success": False, "message": "Credenciales inválidas"}), 401
+
 # PUT: Actualizar usuario
 @user_bp.route('/<int:id_cliente>', methods=['PUT'])
-def update_user(id_cliente):
+@jwt_required()
+def update_user_route(id_cliente):
     data = request.json
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE clientes
-            SET nombre=%s, contrasena=%s, email=%s, direccion=%s, ciudad=%s, estado=%s, pais=%s
-            WHERE id_cliente=%s
-        """, (
-            data.get('nombre', ''),
-            data.get('contrasena', ''),
-            data.get('email', ''),
-            data.get('direccion', ''),
-            data.get('ciudad', ''),
-            data.get('estado', ''),
-            data.get('pais', ''),
-            id_cliente
-        ))
-        conn.commit()
-        if cursor.rowcount == 0:
-            return jsonify({"success": False, "message": "Usuario no encontrado"}), 404
-        return jsonify({"success": True, "message": "Usuario actualizado correctamente"}), 200
+        updated = update_user(id_cliente, data)
+        if updated:
+            return jsonify({"success": True, "message": "Usuario actualizado correctamente"}), 200
+        return jsonify({"success": False, "message": "Usuario no encontrado"}), 404
     except Exception as e:
         logger.error(f"Error en update_user {id_cliente}: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 # DELETE: Eliminar usuario
 @user_bp.route('/<int:id_cliente>', methods=['DELETE'])
-def delete_user(id_cliente):
+@jwt_required()
+def delete_user_route(id_cliente):
     try:
-        conn = mysql.connection
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM clientes WHERE id_cliente = %s", (id_cliente,))
-        conn.commit()
-        if cursor.rowcount == 0:
-            return jsonify({"success": False, "message": "Usuario no encontrado"}), 404
-        return jsonify({"success": True, "message": "Usuario eliminado correctamente"}), 200
+        deleted = delete_user(id_cliente)
+        if deleted:
+            return jsonify({"success": True, "message": "Usuario eliminado correctamente"}), 200
+        return jsonify({"success": False, "message": "Usuario no encontrado"}), 404
     except Exception as e:
         logger.error(f"Error en delete_user {id_cliente}: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
