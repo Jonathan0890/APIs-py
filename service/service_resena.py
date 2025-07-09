@@ -1,5 +1,6 @@
 from config import mysql
 from datetime import datetime
+from utils.ia_helper import analizar_sentimiento_resena
 
 def get_all_resenas():
     conn = mysql.connection
@@ -22,15 +23,18 @@ def get_resena_by_id(id_resena):
 def create_resena(data):
     conn = mysql.connection
     cursor = conn.cursor()
+    sentimiento = analizar_sentimiento_resena(data['comentario']) if 'comentario' in data else 'Sin comentario'
+    
     cursor.execute("""
-        INSERT INTO resenas (id_producto, id_cliente, calificacion, comentario, fecha)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO resenas (id_producto, id_cliente, calificacion, comentario, fecha, sentimiento)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """, (
         data['id_producto'],
         data['id_cliente'],
         data['calificacion'],
         data.get('comentario'),
-        datetime.now()
+        datetime.now(),
+        sentimiento
     ))
     conn.commit()
 
