@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify
-from model.predictor import predecir_reservas, verificar_estado_modelo, diagnosticar_modelo
 import logging
 
+# Configurar logging
 logger = logging.getLogger(__name__)
+
+# Crear el Blueprint
 predict_bp = Blueprint('predict_bp', __name__)
 
+# Valores válidos para validación de entrada
 VALID_VALUES = {
     'dia_semana': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     'tipo de unidad': ['twin_room', 'doble', 'suite', 'individual'],
@@ -12,6 +15,8 @@ VALID_VALUES = {
     'dispositivos': ['movil', 'ordenador'],
     'estado': ['confirmed', 'cancelled_by_guest']
 }
+
+# ---------- Endpoints ----------
 
 @predict_bp.route('/status', methods=['GET'])
 def estado_modelo():
@@ -29,6 +34,7 @@ def estado_modelo():
             'error': str(e)
         }), 500
 
+
 @predict_bp.route('/diagnostico', methods=['GET'])
 def diagnostico_modelo():
     """Endpoint para diagnóstico detallado del modelo"""
@@ -44,6 +50,7 @@ def diagnostico_modelo():
             'status': 'error',
             'error': str(e)
         }), 500
+
 
 @predict_bp.route('/', methods=['POST'])
 def prediccion():
@@ -64,23 +71,19 @@ def prediccion():
         if missing_fields:
             raise ValueError(f"Faltan campos: {', '.join(missing_fields)}")
         
-        # Normalizar datos categóricos
+        # Normalizar datos
         datos_normalizados = {}
         for field, value in datos.items():
             if field in VALID_VALUES:
-                # Buscar valor válido (case-insensitive)
                 normalized = next(
                     (v for v in VALID_VALUES[field] if str(value).lower() == v.lower()),
                     None
                 )
                 if normalized is None:
-                    # Si no se encuentra, usar el primero como default
                     normalized = VALID_VALUES[field][0]
                     logger.warning(f"Valor inválido para {field}: {value}. Usando: {normalized}")
-                
                 datos_normalizados[field] = normalized
             else:
-                # Para campos numéricos, convertir a número si es posible
                 if field in ['mes', 'anio', 'duracion(noches)', 'personas', 'adulto', 'niños', 'anticipacion']:
                     try:
                         datos_normalizados[field] = float(value)
@@ -113,7 +116,7 @@ def prediccion():
             'error': str(e),
             'status': 'error',
             'tipo_error': 'modelo'
-        }), 503  # Service Unavailable
+        }), 503
         
     except Exception as e:
         logger.error(f"Error inesperado en predicción: {str(e)}")
@@ -122,3 +125,49 @@ def prediccion():
             'status': 'error',
             'tipo_error': 'interno'
         }), 500
+
+
+# ---------- Funciones auxiliares del modelo ----------
+
+def predecir_reservas(data):
+    """
+    Función simulada para predecir reservas.
+    Reemplaza este contenido por tu lógica real usando ML o heurísticas.
+    """
+    # Simulación: sumamos personas + anticipacion
+    personas = data.get("personas", 1)
+    anticipacion = data.get("anticipacion", 1)
+    resultado_simulado = int((personas + anticipacion) / 2)
+    return resultado_simulado
+
+
+def verificar_estado_modelo():
+    """
+    Verifica si el modelo está disponible (simulado)
+    """
+    return "modelo cargado correctamente"
+
+
+def diagnosticar_modelo():
+    """
+    Devuelve métricas simuladas del modelo
+    """
+    return {
+        "precision": 0.89,
+        "recall": 0.91,
+        "f1_score": 0.90
+    }
+    
+def verificar_y_cargar_modelo():
+    """
+    Simula la carga de un modelo. Puedes reemplazar esto con la carga real desde un archivo .pkl u otro.
+    """
+    try:
+        # Aquí iría la lógica real como por ejemplo:
+        # with open("modelo_entrenado.pkl", "rb") as f:
+        #     modelo = pickle.load(f)
+        modelo = "modelo_simulado"  # Simulación
+        return modelo
+    except Exception as e:
+        logger.error(f"❌ Error al cargar el modelo: {str(e)}")
+        raise RuntimeError("No se pudo cargar el modelo") from e
