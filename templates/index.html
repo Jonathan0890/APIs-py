@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicción de Reservas Hotel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center text-blue-800 mb-8">Sistema de Predicción de Reservas</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <form id="predictForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Día de la semana -->
+                    <div>
+                        <label for="dia_semana" class="block text-sm font-medium text-gray-700">Día de la semana</label>
+                        <input type="text" id="dia_semana" name="dia_semana" list="dias_semana" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <datalist id="dias_semana">
+                            <option value="Monday">Lunes</option>
+                            <option value="Tuesday">Martes</option>
+                            <option value="Wednesday">Miércoles</option>
+                            <option value="Thursday">Jueves</option>
+                            <option value="Friday">Viernes</option>
+                            <option value="Saturday">Sábado</option>
+                            <option value="Sunday">Domingo</option>
+                        </datalist>
+                    </div>
+
+                    <!-- Tipo de unidad -->
+                    <div>
+                        <label for="tipo_unidad" class="block text-sm font-medium text-gray-700">Tipo de habitación</label>
+                        <input type="text" id="tipo_unidad" name="tipo de unidad" list="tipos_unidad" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <datalist id="tipos_unidad">
+                            <option value="twin_room">Habitación Twin</option>
+                            <option value="doble">Habitación Doble</option>
+                            <option value="suite">Suite</option>
+                            <option value="individual">Individual</option>
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Mes -->
+                    <div>
+                        <label for="mes" class="block text-sm font-medium text-gray-700">Mes</label>
+                        <input type="number" id="mes" name="mes" min="1" max="12" value="8" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Año -->
+                    <div>
+                        <label for="anio" class="block text-sm font-medium text-gray-700">Año</label>
+                        <input type="number" id="anio" name="anio" min="2020" max="2030" value="2025" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Duración -->
+                    <div>
+                        <label for="duracion" class="block text-sm font-medium text-gray-700">Duración (noches)</label>
+                        <input type="number" id="duracion" name="duracion(noches)" min="1" max="30" value="3" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Personas -->
+                    <div>
+                        <label for="personas" class="block text-sm font-medium text-gray-700">Personas</label>
+                        <input type="number" id="personas" name="personas" min="1" max="10" value="2" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Adultos -->
+                    <div>
+                        <label for="adulto" class="block text-sm font-medium text-gray-700">Adultos</label>
+                        <input type="number" id="adulto" name="adulto" min="0" max="10" value="2" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Niños -->
+                    <div>
+                        <label for="niños" class="block text-sm font-medium text-gray-700">Niños</label>
+                        <input type="number" id="niños" name="niños" min="0" max="10" value="0" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Anticipación -->
+                    <div>
+                        <label for="anticipacion" class="block text-sm font-medium text-gray-700">Anticipación (días)</label>
+                        <input type="number" id="anticipacion" name="anticipacion" min="0" max="365" value="30" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Motivo del viaje -->
+                    <div>
+                        <label for="motivo_viaje" class="block text-sm font-medium text-gray-700">Motivo del viaje</label>
+                        <input type="text" id="motivo_viaje" name="motivo del viaje" list="motivos_viaje" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <datalist id="motivos_viaje">
+                            <option value="ocio">Ocio</option>
+                            <option value="trabajo">Trabajo</option>
+                        </datalist>
+                    </div>
+
+                    <!-- Dispositivos -->
+                    <div>
+                        <label for="dispositivos" class="block text-sm font-medium text-gray-700">Dispositivo</label>
+                        <input type="text" id="dispositivos" name="dispositivos" list="dispositivos_lista" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <datalist id="dispositivos_lista">
+                            <option value="movil">Móvil</option>
+                            <option value="ordenador">Ordenador</option>
+                        </datalist>
+                    </div>
+
+                    <!-- Estado -->
+                    <div>
+                        <label for="estado" class="block text-sm font-medium text-gray-700">Estado</label>
+                        <input type="text" id="estado" name="estado" list="estados_lista" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <datalist id="estados_lista">
+                            <option value="confirmed">Confirmada</option>
+                            <option value="cancelled_by_guest">Cancelada</option>
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">
+                        Predecir Reservas
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultado" class="hidden bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Resultado de la Predicción</h2>
+            <div id="resultadoTexto" class="text-lg"></div>
+            <div id="warnings" class="mt-4 text-yellow-600"></div>
+        </div>
+
+        <!-- Gráfico -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Gráfico de Predicción</h2>
+            <div class="chart-container" style="position: relative; height:400px; width:100%">
+                <canvas id="reservasChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Reporte OpenAI -->
+        <div id="openaiSection" class="hidden bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Análisis de Tendencia</h2>
+            <button id="btnOpenAI" class="mb-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                Generar Reporte con IA
+            </button>
+            <div id="reporteOpenAI" class="bg-gray-50 p-4 rounded-md whitespace-pre-wrap"></div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('reservasChart').getContext('2d');
+        let reservasChart = null;
+        let ultimaPrediccion = null;
+
+        document.getElementById('predictForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const data = {};
+            const resultadoDiv = document.getElementById('resultado');
+            const resultadoTexto = document.getElementById('resultadoTexto');
+            const warningsDiv = document.getElementById('warnings');
+            
+            // Reset UI
+            resultadoTexto.textContent = "Procesando...";
+            warningsDiv.textContent = "";
+            resultadoDiv.classList.remove('hidden', 'bg-red-50', 'bg-green-50');
+            resultadoDiv.classList.add('bg-blue-50');
+
+            // Recoger datos del formulario
+            Array.from(form.elements).forEach(el => {
+                if (el.name && el.value) {
+                    data[el.name] = isNaN(el.value) ? el.value : Number(el.value);
+                }
+            });
+
+            try {
+                const response = await fetch('/api/prediccion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+
+                // Mostrar resultados
+                resultadoTexto.textContent = result.mensaje;
+                resultadoDiv.classList.remove('bg-blue-50');
+                resultadoDiv.classList.add('bg-green-50');
+                resultadoDiv.classList.remove('hidden');
+                
+                // Mostrar advertencias si las hay
+                if (result.warnings && result.warnings.length > 0) {
+                    warningsDiv.innerHTML = "<strong>Notas:</strong><br>" + result.warnings.join("<br>");
+                }
+
+                // Actualizar gráfico
+                ultimaPrediccion = result.prediccion_reservas;
+                actualizarGrafico(ultimaPrediccion);
+
+                // Mostrar sección de OpenAI
+                document.getElementById('openaiSection').classList.remove('hidden');
+
+            } catch (error) {
+                resultadoTexto.textContent = `Error: ${error.message}`;
+                resultadoDiv.classList.remove('bg-blue-50');
+                resultadoDiv.classList.add('bg-red-50');
+                resultadoDiv.classList.remove('hidden');
+                console.error('Error:', error);
+            }
+        });
+
+        function actualizarGrafico(prediccion) {
+            if (reservasChart) {
+                reservasChart.destroy();
+            }
+
+            reservasChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Predicción de Reservas'],
+                    datasets: [{
+                        label: 'Número de Reservas',
+                        data: [prediccion],
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Número de Reservas'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Predicción de Reservas para la Fecha Seleccionada',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('btnOpenAI').addEventListener('click', async () => {
+            if (!ultimaPrediccion) {
+                alert("Primero realiza una predicción para generar el reporte");
+                return;
+            }
+
+            const btn = document.getElementById('btnOpenAI');
+            const reporteDiv = document.getElementById('reporteOpenAI');
+            
+            btn.disabled = true;
+            btn.innerHTML = 'Generando...';
+            reporteDiv.textContent = "Generando reporte...";
+
+            try {
+                const response = await fetch('/api/insights', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ predicciones: [ultimaPrediccion] })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error al generar reporte');
+                }
+
+                reporteDiv.textContent = data.reporte;
+
+            } catch (error) {
+                reporteDiv.textContent = `Error: ${error.message}`;
+                console.error('Error:', error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Generar Reporte con IA';
+            }
+        });
+    </script>
+</body>
+</html>

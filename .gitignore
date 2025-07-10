@@ -99,6 +99,7 @@ flask_session/
 # Uploads folder (if you handle file uploads)
 uploads/
 static/uploads/
+reservas/
 
 # Configuration files with sensitive data
 config.py
