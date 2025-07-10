@@ -275,41 +275,60 @@
         }
 
         document.getElementById('btnOpenAI').addEventListener('click', async () => {
-            if (!ultimaPrediccion) {
-                alert("Primero realiza una predicción para generar el reporte");
-                return;
-            }
+    if (!ultimaPrediccion) {
+        alert("Primero realiza una predicción para generar el reporte");
+        return;
+    }
 
-            const btn = document.getElementById('btnOpenAI');
-            const reporteDiv = document.getElementById('reporteOpenAI');
-            
-            btn.disabled = true;
-            btn.innerHTML = 'Generando...';
-            reporteDiv.textContent = "Generando reporte...";
+    const btn = document.getElementById('btnOpenAI');
+    const reporteDiv = document.getElementById('reporteOpenAI');
+    
+    btn.disabled = true;
+    btn.innerHTML = 'Generando...';
+    reporteDiv.textContent = "Generando reporte...";
 
-            try {
-                const response = await fetch('/api/insights', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ predicciones: [ultimaPrediccion] })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Error al generar reporte');
-                }
-
-                reporteDiv.textContent = data.reporte;
-
-            } catch (error) {
-                reporteDiv.textContent = `Error: ${error.message}`;
-                console.error('Error:', error);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Generar Reporte con IA';
-            }
+    try {
+        console.log("Enviando predicción:", ultimaPrediccion); // Debug
+        
+        const response = await fetch('/api/insights', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'  // Asegura que esperas JSON
+            },
+            body: JSON.stringify({ predicciones: [ultimaPrediccion] })
         });
+
+        // Verifica si la respuesta es JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error(`Respuesta no JSON: ${text.substring(0, 100)}...`);
+        }
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `Error HTTP ${response.status}`);
+        }
+
+        reporteDiv.textContent = data.reporte;
+
+    } catch (error) {
+        console.error('Error completo:', error);
+        reporteDiv.textContent = `Error: ${error.message}`;
+        
+        // Muestra más detalles en consola
+        if (error.response) {
+            error.response.text().then(text => {
+                console.error('Respuesta del servidor:', text);
+            });
+        }
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Generar Reporte con IA';
+    }
+});
     </script>
 </body>
 </html>

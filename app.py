@@ -3,6 +3,7 @@ import logging
 from flask import Flask, render_template, jsonify
 from dotenv import load_dotenv
 from routes.predic_route import predict_bp
+from routes.insights_route import insights_bp
 
 # Configuración inicial
 load_dotenv()
@@ -23,6 +24,7 @@ except Exception as e:
 
 # Registrar blueprints
 app.register_blueprint(predict_bp, url_prefix='/api/prediccion')
+app.register_blueprint(insights_bp, url_prefix='/api/insights')
 
 @app.route('/')
 def home():
