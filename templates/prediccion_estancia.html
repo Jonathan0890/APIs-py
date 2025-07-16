@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Predicción de Duración de Estancia</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .wave-decoration {
+      position: relative;
+      overflow: hidden;
+    }
+    .wave-decoration::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 10px;
+      background: linear-gradient(90deg, transparent 0%, #06b6d4 20%, #06b6d4 80%, transparent 100%);
+      opacity: 0.2;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-cyan-900 flex items-center">
+          <i class="fas fa-clock text-cyan-600 mr-3"></i> Duración de Estancia
+        </h1>
+        <p class="text-cyan-700">Modelo de Regresión Lineal - Predice noches de hospedaje</p>
+      </div>
+      <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition flex items-center">
+        <i class="fas fa-arrow-left mr-2"></i> Volver
+      </a>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Formulario -->
+      <div class="bg-white rounded-xl shadow-md p-6 lg:col-span-1">
+        <h2 class="text-xl font-bold text-cyan-800 mb-4 border-b pb-2">
+          <i class="fas fa-edit mr-2 text-cyan-600"></i>Datos del Huésped
+        </h2>
+        <form method="POST" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Número de Personas:</label>
+            <input type="number" name="personas" min="1" max="10" required
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Día de la Semana:</label>
+            <select name="dia_semana" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500">
+              <option value="0">Lunes</option>
+              <option value="1">Martes</option>
+              <option value="2">Miércoles</option>
+              <option value="3">Jueves</option>
+              <option value="4">Viernes</option>
+              <option value="5">Sábado</option>
+              <option value="6">Domingo</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Mes:</label>
+            <select name="mes" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500">
+              {% for i in range(1,13) %}
+              <option value="{{ i }}">{{ i }} - {{ ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][i-1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Motivo del Viaje:</label>
+            <select name="motivo" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500">
+              {% for motivo in motivos %}
+              <option value="{{ motivo }}">{{ motivo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 rounded-lg transition flex items-center justify-center">
+            <i class="fas fa-moon mr-2"></i> Predecir Estancia
+          </button>
+        </form>
+      </div>
+
+      <!-- Resultado -->
+      <div class="lg:col-span-2 space-y-6">
+
+        {% if resultado %}
+        <!-- Tarjeta de Resultado -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden wave-decoration">
+          <div class="p-6">
+            <div class="flex items-start">
+              <div class="bg-cyan-100 p-3 rounded-full mr-4">
+                <i class="fas fa-calendar-week text-cyan-600 text-xl"></i>
+              </div>
+              <div class="flex-1">
+                <h2 class="text-xl font-bold text-cyan-900 mb-4">Estimación de Duración</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div class="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
+                    <p class="text-sm text-cyan-700">Duración estimada:</p>
+                    <p class="text-3xl font-bold text-cyan-900">{{ resultado }} <span class="text-lg font-normal">noches</span></p>
+                  </div>
+                  
+                  <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <p class="text-sm text-gray-600">Para:</p>
+                    <p class="font-medium text-gray-800">
+                      {{ datos_usuario.Personas }} persona(s) · 
+                      {{ ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][datos_usuario.Dia_semana|int] }} · 
+                      {{ ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][datos_usuario.Mes|int-1] }} · 
+                      {{ datos_usuario.Motivo }}
+                    </p>
+                  </div>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p class="text-sm text-blue-800 flex items-start">
+                    <i class="fas fa-lightbulb text-blue-500 mr-2 mt-1"></i>
+                    Los viajes de negocios suelen ser más cortos (2-3 noches), mientras que las vacaciones familiares promedian 5-7 noches.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico de Coeficientes -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+          <h3 class="text-lg font-semibold text-cyan-900 mb-4">
+            <i class="fas fa-chart-bar mr-2 text-cyan-600"></i>Factores que Afectan la Duración
+          </h3>
+          <div class="flex justify-center">
+            <img src="data:image/png;base64,{{ coef_img }}" alt="Impacto de variables" class="rounded-lg shadow-sm max-w-full">
+          </div>
+          <p class="text-sm text-gray-600 mt-3">
+            El motivo del viaje y el mes son los factores más determinantes en la duración de la estancia.
+          </p>
+        </div>
+        {% else %}
+        <!-- Estado Inicial -->
+        <div class="bg-white rounded-xl shadow-md p-8 h-full flex flex-col justify-center text-center">
+          <div class="mx-auto w-24 h-24 bg-cyan-100 rounded-full flex items-center justify-center mb-4">
+            <i class="fas fa-clock text-cyan-600 text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold text-cyan-900 mb-2">Complete el formulario</h3>
+          <p class="text-gray-600">Ingrese los detalles del huésped para predecir la duración estimada de su estancia.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
