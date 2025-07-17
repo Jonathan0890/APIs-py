@@ -70,52 +70,103 @@ def dashboard():
 # 1. Predicción de Reservas
 @app.route('/prediccion_reservas', methods=['GET', 'POST'])
 def prediccion_reservas():
-    reservas_por_dia = df.groupby(['Año', 'Mes', 'Dia_semana']).size().reset_index(name='Num_reservas')
-    X = reservas_por_dia[['Año', 'Mes', 'Dia_semana']]
-    y = reservas_por_dia['Num_reservas']
-    
-    modelo = RandomForestRegressor(n_estimators=100, random_state=42)
-    modelo.fit(X, y)
-    
-    resultado = None
-    datos_usuario = {}
-    grafica_img = None
-    
-    if request.method == 'POST':
-        try:
+    try:
+        # Verificar si hay datos suficientes
+        if len(df) == 0:
+            raise ValueError("No hay datos disponibles para realizar predicciones")
+            
+        # Preparar datos históricos
+        reservas_por_dia = df.groupby(['Año', 'Mes', 'Dia_semana']).size().reset_index(name='Num_reservas')
+        
+        # Verificar que hay datos históricos
+        if len(reservas_por_dia) == 0:
+            raise ValueError("No hay suficientes datos históricos para entrenar el modelo")
+            
+        X = reservas_por_dia[['Año', 'Mes', 'Dia_semana']]
+        y = reservas_por_dia['Num_reservas']
+        
+        # Entrenar modelo
+        modelo = RandomForestRegressor(n_estimators=100, random_state=42)
+        modelo.fit(X, y)
+        
+        # Variables para el template
+        resultado = None
+        datos_usuario = {}
+        grafica_img = None
+        historico_img = None
+        nombre_dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        nombre_meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+        if request.method == 'POST':
             fecha_str = request.form['fecha']
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d')
             
+            # Datos para la predicción
             datos_usuario = {
                 'Año': fecha.year,
                 'Mes': fecha.month,
                 'Dia_semana': fecha.weekday()
             }
             
+            # Realizar predicción
             entrada = pd.DataFrame([datos_usuario])
             pred = int(modelo.predict(entrada)[0])
-            resultado = f"Reservas estimadas para {fecha_str}: {pred}"
             
-            # Gráfico de importancia
-            fig, ax = plt.subplots()
+            # Formatear resultado
+            dia_nombre = nombre_dias[fecha.weekday()]
+            mes_nombre = nombre_meses[fecha.month - 1]
+            resultado = f"Se predice que el {dia_nombre} {fecha.day} de {mes_nombre} del {fecha.year} habrá {pred} reservas."
+            
+            # Gráfico 1: Importancia de características
+            fig1, ax1 = plt.subplots(figsize=(10, 5))
             importancias = modelo.feature_importances_
             features = ['Año', 'Mes', 'Día semana']
-            ax.barh(features, importancias)
-            ax.set_title('Importancia de características')
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            buf.seek(0)
-            grafica_img = base64.b64encode(buf.read()).decode('utf-8')
-            plt.close()
+            ax1.barh(features, importancias, color=['#3b82f6', '#10b981', '#6366f1'])
+            ax1.set_title('Factores que influyen en la predicción')
+            ax1.set_xlabel('Importancia relativa')
+            buf1 = io.BytesIO()
+            plt.savefig(buf1, format='png', bbox_inches='tight')
+            buf1.seek(0)
+            grafica_img = base64.b64encode(buf1.read()).decode('utf-8')
+            plt.close(fig1)
             
-        except Exception as e:
-            logger.error(f"Error en predicción de reservas: {str(e)}")
-            resultado = f"Error: {str(e)}"
+            # Gráfico 2: Datos históricos para contexto
+            fig2, ax2 = plt.subplots(figsize=(10, 5))
+            
+            # Filtrar datos históricos del mismo mes
+            historico = df[df['Mes'] == fecha.month].groupby('Dia_semana').size()
+            
+            if len(historico) > 0:
+                historico.index = [nombre_dias[i] for i in historico.index]
+                historico.plot(kind='bar', ax=ax2, color='#3b82f6', alpha=0.7)
+                ax2.axhline(pred, color='#ef4444', linestyle='--', label='Predicción actual')
+                ax2.set_title(f'Reservas históricas para {mes_nombre}')
+                ax2.set_ylabel('Número de reservas')
+                ax2.legend()
+            else:
+                # Mostrar mensaje si no hay datos históricos
+                ax2.text(0.5, 0.5, 'No hay datos históricos\npara este mes', 
+                        ha='center', va='center', transform=ax2.transAxes)
+                ax2.set_title(f'Reservas históricas para {mes_nombre}')
+            
+            buf2 = io.BytesIO()
+            plt.savefig(buf2, format='png', bbox_inches='tight')
+            buf2.seek(0)
+            historico_img = base64.b64encode(buf2.read()).decode('utf-8')
+            plt.close(fig2)
+            
+    except Exception as e:
+        logger.error(f"Error en predicción de reservas: {str(e)}")
+        resultado = f"Error: {str(e)}"
+        grafica_img = None
+        historico_img = None
     
     return render_template("prediccion_reservas.html",
                          resultado=resultado,
                          datos_usuario=datos_usuario,
-                         grafica_img=grafica_img)
+                         grafica_img=grafica_img,
+                         historico_img=historico_img)
 
 # 2. Predicción de Tipo de Habitación
 @app.route('/prediccion_habitacion', methods=['GET', 'POST'])
