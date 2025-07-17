@@ -171,47 +171,81 @@ def prediccion_reservas():
 # 2. Predicción de Tipo de Habitación
 @app.route('/prediccion_habitacion', methods=['GET', 'POST'])
 def prediccion_habitacion():
-    df_habitaciones = df[df['Tipo de unidad'].notna()]
-    X = df_habitaciones[['Personas', 'Adultos', 'Niños']]
-    y = df_habitaciones['Tipo de unidad']
-    
-    modelo = DecisionTreeClassifier(max_depth=4, random_state=42)
-    modelo.fit(X, y)
-    
-    resultado = None
-    datos_usuario = {}
-    arbol_img = None
-    
-    if request.method == 'POST':
-        try:
-            datos_usuario = {
-                'Personas': int(request.form['personas']),
-                'Adultos': int(request.form['adultos']),
-                'Niños': int(request.form['ninos'])
-            }
+    try:
+        # Filtrar datos válidos
+        df_habitaciones = df[df['Tipo de unidad'].notna()]
+        
+        # Verificar que hay datos
+        if len(df_habitaciones) == 0:
+            raise ValueError("No hay datos de habitaciones disponibles")
             
-            entrada = pd.DataFrame([datos_usuario])
-            pred = modelo.predict(entrada)[0]
-            resultado = f"Tipo de habitación recomendada: {pred}"
-            
-            # Visualizar árbol
-            fig, ax = plt.subplots(figsize=(12, 8))
-            plot_tree(modelo, feature_names=['Personas', 'Adultos', 'Niños'], 
-                     class_names=modelo.classes_, filled=True, rounded=True)
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            buf.seek(0)
-            arbol_img = base64.b64encode(buf.read()).decode('utf-8')
-            plt.close()
-            
-        except Exception as e:
-            logger.error(f"Error en predicción de habitación: {str(e)}")
-            resultado = f"Error: {str(e)}"
+        # Usar solo adultos y niños como features
+        X = df_habitaciones[['Adultos', 'Niños']]
+        y = df_habitaciones['Tipo de unidad']
+        
+        # Entrenar modelo
+        modelo = DecisionTreeClassifier(max_depth=4, random_state=42)
+        modelo.fit(X, y)
+        
+        resultado = None
+        datos_usuario = {}
+        arbol_img = None
+        
+        if request.method == 'POST':
+            try:
+                # Obtener datos del formulario (solo adultos y niños)
+                adultos = int(request.form['adultos'])
+                ninos = int(request.form['ninos'])
+                
+                # Calcular total de personas
+                total_personas = adultos + ninos
+                
+                datos_usuario = {
+                    'Adultos': adultos,
+                    'Niños': ninos,
+                    'Personas': total_personas
+                }
+                
+                # Realizar predicción
+                entrada = pd.DataFrame([[adultos, ninos]], columns=['Adultos', 'Niños'])
+                pred = modelo.predict(entrada)[0]
+                resultado = f"Tipo de habitación recomendada: {pred}"
+                
+                # Visualizar árbol
+                from sklearn.tree import plot_tree  # Importar aquí para evitar error
+                
+                fig, ax = plt.subplots(figsize=(16, 10))
+                plot_tree(modelo, 
+                         feature_names=['Adultos', 'Niños'],
+                         class_names=modelo.classes_,
+                         filled=True, 
+                         rounded=True,
+                         proportion=True,
+                         fontsize=10,
+                         ax=ax)
+                
+                plt.tight_layout()
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png', dpi=120, bbox_inches='tight')
+                buf.seek(0)
+                arbol_img = base64.b64encode(buf.read()).decode('utf-8')
+                plt.close(fig)
+                
+            except Exception as e:
+                logger.error(f"Error en predicción de habitación: {str(e)}")
+                resultado = f"Error: {str(e)}"
+        
+        return render_template("prediccion_habitacion.html",
+                             resultado=resultado,
+                             datos_usuario=datos_usuario,
+                             arbol_img=arbol_img)
     
-    return render_template("prediccion_habitacion.html",
-                         resultado=resultado,
-                         datos_usuario=datos_usuario,
-                         arbol_img=arbol_img)
+    except Exception as e:
+        logger.error(f"Error inicial en predicción de habitación: {str(e)}")
+        return render_template("prediccion_habitacion.html",
+                             resultado=f"Error: {str(e)}",
+                             datos_usuario={},
+                             arbol_img=None)
 
 # 3. Predicción de Duración de Estancia
 @app.route('/prediccion_estancia', methods=['GET', 'POST'])
