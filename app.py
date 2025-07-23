@@ -31,9 +31,9 @@ try:
     verificar_y_cargar_modelo()
     logger.info("✅ Modelo ML cargado correctamente")
     
-    # Cargar datos del hotel
+    
     logger.info("Cargando datos del hotel...")
-    df = pd.read_excel("datos_limpios.xlsx")
+    df = pd.read_excel("datos_limpios2.xlsx")
     
     # Preprocesamiento básico
     df['Entrada'] = pd.to_datetime(df['Entrada'])
@@ -253,7 +253,7 @@ def prediccion_estancia():
     try:
         # Hacer una copia del dataframe para no modificar el original
         df_estancia = df.copy()
-        df_estancia = df_estancia[df_estancia['Duración (noches)'].notna()]
+        df_estancia = df_estancia[df_estancia['Motivo del viaje'].isin(['Trabajo', 'Ocio'])]
         
         # Codificadores
         le_motivo = LabelEncoder()
@@ -270,7 +270,7 @@ def prediccion_estancia():
         modelo = LinearRegression()
         modelo.fit(X, y)
         
-        # Lista completa de países en minúsculas con formato "Nombre(código)"
+        
         todos_los_paises = [
             "afganistán(af)", "albania(al)", "alemania(de)", "andorra(ad)", "angola(ao)",
             "anguilla(ai)", "antártida(aq)", "antigua y barbuda(ag)", "antillas holandesas(an)",
@@ -433,7 +433,7 @@ def prediccion_estancia():
                             coef_img=coef_img,
                             regresion_img=regresion_img,
                             analisis_pais=analisis_pais,
-                            motivos=le_motivo.classes_,
+                            motivos=['Trabajo', 'Ocio'],
                             todos_los_paises=todos_los_paises,
                             nombre_meses=nombre_meses,
                             nombre_dias=nombre_dias)
@@ -509,7 +509,7 @@ def prediccion_cancelacion():
         proba_img = None
         regresion_img = None
         
-        # Lista completa de países en minúsculas con formato "Nombre(código)"
+        
         todos_los_paises = [
             "afganistán(af)", "albania(al)", "alemania(de)", "andorra(ad)", "angola(ao)",
             "anguilla(ai)", "antártida(aq)", "antigua y barbuda(ag)", "antillas holandesas(an)",
@@ -569,7 +569,7 @@ def prediccion_cancelacion():
                     'Personas': int(request.form['personas']),
                     'Dias_anticipacion': int(request.form['dias_anticipacion']),
                     'Motivo': request.form['motivo'],
-                    'Pais': request.form['pais'].lower(),  # Convertir a minúsculas
+                    'Pais': request.form['pais'].lower(),  
                     'Dia_semana': int(request.form['dia_semana'])
                 }
                 

@@ -25,7 +25,7 @@ def normalizar_categoria(valor, categoria):
 def entrenar_modelo_si_no_existe():
     try:
         os.makedirs('modelo', exist_ok=True)
-        ruta_datos = os.path.join('reservas', 'datos_limpios.xlsx')
+        ruta_datos = os.path.join('reservas', 'datos_limpios2.xlsx')
         
         if not os.path.exists(ruta_datos):
             raise FileNotFoundError(f"Archivo no encontrado: {ruta_datos}")
