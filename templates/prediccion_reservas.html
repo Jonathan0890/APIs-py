@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Predicción de Reservas</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .beach-card {
+      background: linear-gradient(135deg, rgba(240, 249, 255, 0.9) 0%, rgba(224, 242, 254, 0.9) 100%);
+      border-left: 4px solid #3b82f6;
+    }
+    .goal-card {
+      background: linear-gradient(135deg, rgba(254, 243, 199, 0.9) 0%, rgba(253, 230, 138, 0.9) 100%);
+      border-left: 4px solid #f59e0b;
+    }
+    .wave-pattern {
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 C20 0, 40 20, 60 10 S100 0, 100 10' fill='none' stroke='%233b82f6' stroke-width='0.5' /%3E%3C/svg%3E");
+      background-size: 100px 20px;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-blue-900 flex items-center">
+          <i class="fas fa-chart-line text-blue-600 mr-3"></i> Predicción de Reservas Diarias
+        </h1>
+        <p class="text-blue-700">Modelo Random Forest - Establece tus metas de ocupación</p>
+      </div>
+      <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition flex items-center">
+        <i class="fas fa-arrow-left mr-2"></i> Volver
+      </a>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Formulario -->
+      <div class="bg-white rounded-xl shadow-md p-6 lg:col-span-1">
+        <h2 class="text-xl font-bold text-blue-800 mb-4 border-b pb-2">
+          <i class="fas fa-calendar-alt mr-2 text-blue-600"></i>Seleccione Fecha
+        </h2>
+        <form method="POST" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha a predecir:</label>
+            <input type="date" name="fecha" required 
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition flex items-center justify-center">
+            <i class="fas fa-calculator mr-2"></i> Calcular Predicción
+          </button>
+        </form>
+        
+        {% if resultado %}
+        <div class="mt-6 beach-card p-4 rounded-lg wave-pattern">
+          <h3 class="font-semibold text-blue-900 mb-2">Resultado Anterior:</h3>
+          <p class="text-lg text-blue-800">{{ resultado }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Resultado y Gráfico -->
+      <div class="lg:col-span-2 space-y-6">
+
+        {% if resultado and grafica_img %}
+        <!-- Tarjeta de Resultado -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-6">
+            <div class="flex items-start">
+              <div class="bg-blue-100 p-3 rounded-full mr-4">
+                <i class="fas fa-bullseye text-blue-600 text-xl"></i>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-blue-900 mb-2">Meta de Reservas</h2>
+                <div class="goal-card rounded-lg p-4 mb-4">
+                  <p class="text-2xl font-bold text-gray-800">{{ resultado }}</p>
+                  <p class="text-sm text-gray-600 mt-2">
+                    Basado en patrones del año pasado. Esta predicción sirve como meta a superar.
+                  </p>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p class="text-sm text-blue-800 flex items-start">
+                    <i class="fas fa-lightbulb text-blue-500 mr-2 mt-1"></i>
+                    Las fechas con mayor ocupación histórica suelen ser fines de semana y meses de vacaciones.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Gráfico de Importancia -->
+          <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-4">
+              <i class="fas fa-chart-pie mr-2 text-blue-600"></i>Factores Clave
+            </h3>
+            <img src="data:image/png;base64,{{ grafica_img }}" alt="Importancia de características" class="rounded-lg shadow-sm w-full">
+            <p class="text-sm text-gray-600 mt-3">
+              El mes y día de la semana son los factores más importantes en la predicción.
+            </p>
+          </div>
+
+          <!-- Gráfico Histórico -->
+          <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-4">
+              <i class="fas fa-chart-bar mr-2 text-blue-600"></i>Comparación Histórica
+            </h3>
+            <img src="data:image/png;base64,{{ historico_img }}" alt="Datos históricos" class="rounded-lg shadow-sm w-full">
+            <p class="text-sm text-gray-600 mt-3">
+              La línea roja muestra tu predicción actual comparada con datos pasados.
+            </p>
+          </div>
+        </div>
+        {% else %}
+        <!-- Estado Inicial -->
+        <div class="bg-white rounded-xl shadow-md p-8 h-full flex flex-col justify-center text-center">
+          <div class="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+            <i class="fas fa-calendar-check text-blue-600 text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold text-blue-900 mb-2">Ingrese una fecha</h3>
+          <p class="text-gray-600">Seleccione una fecha para obtener la predicción de reservas y establecer su meta.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

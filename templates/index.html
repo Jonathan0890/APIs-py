@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Hotel Analytics Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    .card-hover {
+      transition: all 0.3s ease;
+      border-bottom: 4px solid transparent;
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .bg-beach-gradient {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%);
+    }
+  </style>
+</head>
+<body class="bg-beach-gradient min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-10">
+      <div class="mb-6 md:mb-0">
+        <div class="flex items-center">
+          <i class="fas fa-umbrella-beach text-3xl text-blue-600 mr-3"></i>
+          <h1 class="text-4xl font-bold text-blue-900 mb-2">Hotel Coral Analytics</h1>
+        </div>
+        <p class="text-lg text-blue-700">Modelos predictivos para optimizar tu operación hotelera</p>
+      </div>
+      <!-- <div class="flex space-x-4">
+        <button onclick="cerrarSesion()"
+          class="flex items-center bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700 transition shadow-md">
+          <i class="fas fa-sign-out-alt mr-2"></i> Cerrar Sesión
+        </button>
+      </div>-->
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-10">
+      <div class="bg-white bg-opacity-90 rounded-xl p-5 shadow-md border-l-4 border-blue-400">
+        <div class="text-blue-600 mb-2"><i class="fas fa-calendar-check text-xl"></i></div>
+        <h3 class="font-semibold text-blue-900">Reservas</h3>
+        <p class="text-2xl font-bold text-blue-800">Predicción diaria</p>
+      </div>
+      <div class="bg-white bg-opacity-90 rounded-xl p-5 shadow-md border-l-4 border-blue-400">
+        <div class="text-blue-600 mb-2"><i class="fas fa-bed text-xl"></i></div>
+        <h3 class="font-semibold text-blue-900">Habitaciones</h3>
+        <p class="text-2xl font-bold text-blue-800">Preferencias</p>
+      </div>
+      <div class="bg-white bg-opacity-90 rounded-xl p-5 shadow-md border-l-4 border-blue-400">
+        <div class="text-blue-600 mb-2"><i class="fas fa-moon text-xl"></i></div>
+        <h3 class="font-semibold text-blue-900">Estancia</h3>
+        <p class="text-2xl font-bold text-blue-800">Duración media</p>
+      </div>
+      <div class="bg-white bg-opacity-90 rounded-xl p-5 shadow-md border-l-4 border-indigo-400">
+        <div class="text-indigo-600 mb-2"><i class="fas fa-times-circle text-xl"></i></div>
+        <h3 class="font-semibold text-blue-900">Cancelaciones</h3>
+        <p class="text-2xl font-bold text-blue-800">Tasa reducción</p>
+      </div>
+    </div>
+
+    <!-- Model Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- Reservas -->
+      <div class="bg-white bg-opacity-90 rounded-xl shadow-md overflow-hidden card-hover border-b-4 border-blue-500">
+        <div class="p-6">
+          <div class="flex items-center mb-3">
+            <div class="bg-blue-100 p-3 rounded-full mr-4">
+              <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-blue-900">Predicción de Reservas</h2>
+          </div>
+          <p class="text-gray-600 mb-4">Pronostica la ocupación diaria basada en temporada y día de la semana.</p>
+          <a href="/prediccion_reservas" class="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
+            Explorar <i class="fas fa-arrow-right ml-2"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Habitaciones -->
+      <div class="bg-white bg-opacity-90 rounded-xl shadow-md overflow-hidden card-hover border-b-4 border-blue-500">
+        <div class="p-6">
+          <div class="flex items-center mb-3">
+            <div class="bg-blue-100 p-3 rounded-full mr-4">
+              <i class="fas fa-bed text-blue-600 text-xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-blue-900">Tipo de Habitación</h2>
+          </div>
+          <p class="text-gray-600 mb-4">Predice qué tipo de habitación preferirán según la composición familiar.</p>
+          <a href="/prediccion_habitacion" class="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
+            Explorar <i class="fas fa-arrow-right ml-2"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Estancia -->
+      <div class="bg-white bg-opacity-90 rounded-xl shadow-md overflow-hidden card-hover border-b-4 border-blue-500">
+        <div class="p-6">
+          <div class="flex items-center mb-3">
+            <div class="bg-blue-100 p-3 rounded-full mr-4">
+              <i class="fas fa-clock text-blue-600 text-xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-blue-900">Duración de Estancia</h2>
+          </div>
+          <p class="text-gray-600 mb-4">Estima cuántas noches se quedarán los huéspedes según sus características.</p>
+          <a href="/prediccion_estancia" class="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
+            Explorar <i class="fas fa-arrow-right ml-2"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Cancelaciones -->
+      <div class="bg-white bg-opacity-90 rounded-xl shadow-md overflow-hidden card-hover border-b-4 border-indigo-500">
+        <div class="p-6">
+          <div class="flex items-center mb-3">
+            <div class="bg-indigo-100 p-3 rounded-full mr-4">
+              <i class="fas fa-exclamation-triangle text-indigo-600 text-xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-blue-900">Riesgo de Cancelación</h2>
+          </div>
+          <p class="text-gray-600 mb-4">Identifica reservas con alta probabilidad de cancelación para tomar acciones.</p>
+          <a href="/prediccion_cancelacion" class="inline-flex items-center bg-blue-500 hover:bg-indigo-600 text-white py-2 px-4 rounded-lg transition-colors">
+            Explorar <i class="fas fa-arrow-right ml-2"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-12 text-center text-blue-700 text-sm">
+      <p>© 2025 Hotel Coral. Todos los derechos reservados.</p>
+      <p class="mt-1">Optimizando tu operación hotelera con inteligencia artificial.</p>
+    </div>
+  </div>
+
+  <script>
+    function cerrarSesion() {
+      localStorage.removeItem("usuarioDatos");
+      window.location.href = "/";
+    }
+  </script>
+</body>
+</html>
