@@ -71,16 +71,19 @@ def dashboard():
 @app.route('/prediccion_reservas', methods=['GET', 'POST'])
 def prediccion_reservas():
     try:
+        # Filtrar solo reservas confirmadas (estado "ok")
+        df_confirmadas = df[df['Estado'] == 'ok']
+        
         # Verificar si hay datos suficientes
-        if len(df) == 0:
-            raise ValueError("No hay datos disponibles para realizar predicciones")
+        if len(df_confirmadas) == 0:
+            raise ValueError("No hay datos disponibles de reservas confirmadas para realizar predicciones")
             
         # Preparar datos históricos
-        reservas_por_dia = df.groupby(['Año', 'Mes', 'Dia_semana']).size().reset_index(name='Num_reservas')
+        reservas_por_dia = df_confirmadas.groupby(['Año', 'Mes', 'Dia_semana']).size().reset_index(name='Num_reservas')
         
         # Verificar que hay datos históricos
         if len(reservas_por_dia) == 0:
-            raise ValueError("No hay suficientes datos históricos para entrenar el modelo")
+            raise ValueError("No hay suficientes datos históricos de reservas confirmadas para entrenar el modelo")
             
         X = reservas_por_dia[['Año', 'Mes', 'Dia_semana']]
         y = reservas_por_dia['Num_reservas']
@@ -113,10 +116,10 @@ def prediccion_reservas():
             entrada = pd.DataFrame([datos_usuario])
             pred = int(modelo.predict(entrada)[0])
             
-            # Formatear resultado
+            # Formatear resultado con texto mejorado
             dia_nombre = nombre_dias[fecha.weekday()]
             mes_nombre = nombre_meses[fecha.month - 1]
-            resultado = f"Se predice que el {dia_nombre} {fecha.day} de {mes_nombre} del {fecha.year} habrá {pred} reservas."
+            resultado = f"Se estima que el {dia_nombre} {fecha.day} de {mes_nombre} del {fecha.year} llegarán {pred} huéspedes confirmados."
             
             # Gráfico 1: Importancia de características
             fig1, ax1 = plt.subplots(figsize=(10, 5))
@@ -135,20 +138,20 @@ def prediccion_reservas():
             fig2, ax2 = plt.subplots(figsize=(10, 5))
             
             # Filtrar datos históricos del mismo mes
-            historico = df[df['Mes'] == fecha.month].groupby('Dia_semana').size()
+            historico = df_confirmadas[df_confirmadas['Mes'] == fecha.month].groupby('Dia_semana').size()
             
             if len(historico) > 0:
                 historico.index = [nombre_dias[i] for i in historico.index]
                 historico.plot(kind='bar', ax=ax2, color='#3b82f6', alpha=0.7)
                 ax2.axhline(pred, color='#ef4444', linestyle='--', label='Predicción actual')
-                ax2.set_title(f'Reservas históricas para {mes_nombre}')
-                ax2.set_ylabel('Número de reservas')
+                ax2.set_title(f'Llegadas históricas de huéspedes confirmados en {mes_nombre}')
+                ax2.set_ylabel('Número de huéspedes')
                 ax2.legend()
             else:
                 # Mostrar mensaje si no hay datos históricos
                 ax2.text(0.5, 0.5, 'No hay datos históricos\npara este mes', 
                         ha='center', va='center', transform=ax2.transAxes)
-                ax2.set_title(f'Reservas históricas para {mes_nombre}')
+                ax2.set_title(f'Llegadas históricas para {mes_nombre}')
             
             buf2 = io.BytesIO()
             plt.savefig(buf2, format='png', bbox_inches='tight')
@@ -247,7 +250,7 @@ def prediccion_habitacion():
                              datos_usuario={},
                              arbol_img=None)
 
-# 3. Predicción de Duración de Estanci
+# 3. Predicción de Duración de Estancia
 @app.route('/prediccion_estancia', methods=['GET', 'POST'])
 def prediccion_estancia():
     try:
@@ -358,24 +361,37 @@ def prediccion_estancia():
                                       pais_num]])
                 
                 # Realizar predicción
-                pred = round(modelo.predict(entrada)[0], 1)
-                resultado = f"Duración estimada: {pred} noches"
-                
+                pred = modelo.predict(entrada)[0]
+
+                # Función para formatear la duración sin decimales
+                def formatear_duracion(duracion):
+                    if duracion < 1:
+                        return "menos de 1 noche"
+                    else:
+                        duracion_redondeada = round(duracion)
+                        if duracion_redondeada == duracion:  # Si ya es entero
+                            return f"{duracion_redondeada} noches"
+                        else:
+                            return f"{int(duracion)} a {int(duracion)+1} noches"
+
+                # Formatear la predicción principal
+                resultado = f"Duración estimada: {formatear_duracion(pred)}"
+
                 # Generar análisis por país y motivo
                 if pais_en_datos:
                     filtro_pais = (df_estancia['Booker country'] == datos_usuario['Pais']) & \
-                                 (df_estancia['Motivo del viaje'] == datos_usuario['Motivo']) & \
-                                 (df_estancia['Mes'] == datos_usuario['Mes'])
+                                (df_estancia['Motivo del viaje'] == datos_usuario['Motivo']) & \
+                                (df_estancia['Mes'] == datos_usuario['Mes'])
                     
                     if filtro_pais.any():
                         duracion_promedio = df_estancia[filtro_pais]['Duración (noches)'].mean()
                         tendencia = "largas" if duracion_promedio > 4 else "cortas"
                         
                         nombre_pais = next((p.split('(')[0] for p in todos_los_paises 
-                                          if p.split('(')[1].replace(')', '') == datos_usuario['Pais']), datos_usuario['Pais'].upper())
+                                        if p.split('(')[1].replace(')', '') == datos_usuario['Pais']), datos_usuario['Pais'].upper())
                         
                         analisis_pais = {
-                            'mensaje': f"Las personas de {nombre_pais} que vienen por motivos de {datos_usuario['Motivo'].lower()} en {nombre_meses[datos_usuario['Mes']-1]} son más propensas a estancias {tendencia} (promedio: {duracion_promedio:.1f} noches).",
+                            'mensaje': f"Las personas de {nombre_pais} que vienen por motivos de {datos_usuario['Motivo'].lower()} en {nombre_meses[datos_usuario['Mes']-1]} son más propensas a estancias {tendencia} (promedio: {formatear_duracion(duracion_promedio)}).",
                             'tendencia': tendencia,
                             'duracion_promedio': duracion_promedio
                         }

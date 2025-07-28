@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Predicción de Reservas</title>
+  <title>Predicción de Huéspedes Confirmados</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -28,9 +28,9 @@
     <div class="flex justify-between items-center">
       <div>
         <h1 class="text-3xl font-bold text-blue-900 flex items-center">
-          <i class="fas fa-chart-line text-blue-600 mr-3"></i> Predicción de Reservas Diarias
+          <i class="fas fa-chart-line text-blue-600 mr-3"></i> Predicción de Huéspedes Confirmados
         </h1>
-        <p class="text-blue-700">Modelo Random Forest - Establece tus metas de ocupación</p>
+        <p class="text-blue-700">Modelo Random Forest - Predice la cantidad de huéspedes que llegarán confirmados</p>
       </div>
       <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition flex items-center">
         <i class="fas fa-arrow-left mr-2"></i> Volver
@@ -76,17 +76,17 @@
                 <i class="fas fa-bullseye text-blue-600 text-xl"></i>
               </div>
               <div>
-                <h2 class="text-xl font-bold text-blue-900 mb-2">Meta de Reservas</h2>
+                <h2 class="text-xl font-bold text-blue-900 mb-2">Estimación de Huéspedes</h2>
                 <div class="goal-card rounded-lg p-4 mb-4">
                   <p class="text-2xl font-bold text-gray-800">{{ resultado }}</p>
                   <p class="text-sm text-gray-600 mt-2">
-                    Basado en patrones del año pasado. Esta predicción sirve como meta a superar.
+                    Basado en patrones históricos de reservas confirmadas. Esta predicción ayuda a planificar el personal y servicios necesarios.
                   </p>
                 </div>
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p class="text-sm text-blue-800 flex items-start">
                     <i class="fas fa-lightbulb text-blue-500 mr-2 mt-1"></i>
-                    Las fechas con mayor ocupación histórica suelen ser fines de semana y meses de vacaciones.
+                    Las fechas con mayor llegada de huéspedes suelen ser fines de semana y meses de vacaciones.
                   </p>
                 </div>
               </div>
@@ -114,7 +114,7 @@
             </h3>
             <img src="data:image/png;base64,{{ historico_img }}" alt="Datos históricos" class="rounded-lg shadow-sm w-full">
             <p class="text-sm text-gray-600 mt-3">
-              La línea roja muestra tu predicción actual comparada con datos pasados.
+              La línea roja muestra tu predicción actual comparada con datos pasados de llegadas confirmadas.
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@
             <i class="fas fa-calendar-check text-blue-600 text-3xl"></i>
           </div>
           <h3 class="text-xl font-bold text-blue-900 mb-2">Ingrese una fecha</h3>
-          <p class="text-gray-600">Seleccione una fecha para obtener la predicción de reservas y establecer su meta.</p>
+          <p class="text-gray-600">Seleccione una fecha para obtener la predicción de huéspedes confirmados.</p>
         </div>
         {% endif %}
       </div>
