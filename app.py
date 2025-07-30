@@ -704,6 +704,75 @@ def prediccion_cancelacion():
                             todos_los_paises=[],
                             paises_con_datos=[])
 
+ARCHIVO_MAESTRO = "datos_limpios2.xlsx"
+CAMPOS_OBLIGATORIOS = [
+    "Número de reserva",
+    "Entrada",
+    "Salida",
+    "Estado",
+    "Precio"
+]
+
+COLUMNAS_CLAVE = ["Número de reserva","Reservado por","Nombre del cliente (o clientes)" ,"Estado","Entrada", "Salida","Precio"]
+
+@app.route('/cargar-excel', methods=['POST'])
+def cargar_excel():
+    if 'archivo' not in request.files:
+        return jsonify({"error": "No se encontró el archivo en la solicitud"}), 400
+
+    archivo = request.files['archivo']
+
+    if archivo.filename == '':
+        return jsonify({"error": "No se seleccionó ningún archivo"}), 400
+
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        return jsonify({"error": "Formato de archivo no permitido"}), 400
+
+    try:
+        df_nuevo = pd.read_excel(archivo)
+
+        # Verificar columnas obligatorias
+        columnas = df_nuevo.columns.tolist()
+        faltantes = [col for col in CAMPOS_OBLIGATORIOS if col not in columnas]
+
+        if faltantes:
+            return jsonify({
+                "error": "El archivo no cumple con la plantilla esperada.",
+                "faltantes": faltantes
+            }), 400
+
+        # Cargar archivo maestro existente o usar el nuevo
+        if os.path.exists(ARCHIVO_MAESTRO):
+            df_maestro = pd.read_excel(ARCHIVO_MAESTRO)
+            filas_antes = len(df_maestro)
+
+            # Concatenar y eliminar duplicados
+            df_combinado = pd.concat([df_maestro, df_nuevo], ignore_index=True)
+            df_sin_duplicados = df_combinado.drop_duplicates(subset=COLUMNAS_CLAVE)
+
+            filas_despues = len(df_sin_duplicados)
+            nuevas_filas = filas_despues - filas_antes
+
+            if nuevas_filas == 0:
+                return jsonify({
+                    "mensaje": "El archivo no agregó registros nuevos. Todo ya existía."
+                })
+
+        else:
+            df_sin_duplicados = df_nuevo
+            nuevas_filas = len(df_nuevo)
+
+        # Guardar archivo actualizado
+        df_sin_duplicados.to_excel(ARCHIVO_MAESTRO, index=False)
+
+        return jsonify({
+            "mensaje": "Archivo procesado correctamente",
+            "nuevas_filas": nuevas_filas,
+            "total_filas": len(df_sin_duplicados)
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"No se pudo procesar el archivo: {str(e)}"}), 500
 
 @app.route('/health')
 def health_check():

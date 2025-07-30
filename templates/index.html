@@ -121,7 +121,7 @@
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-xl font-bold text-blue-900">
         <i class="fas fa-file-upload text-blue-600 mr-2"></i>
-        Cargar Archivo
+        Cargar Archivos
       </h3>
       <button id="closeModal" class="text-gray-400 hover:text-gray-600">
         <i class="fas fa-times"></i>
@@ -129,10 +129,10 @@
     </div>
     
     <p class="text-gray-600 mb-4 text-sm">
-      Sube archivos Excel (.xlsx) o CSV para alimentar nuestros modelos predictivos.
+      Sube archivos Excel (.xlsx) para alimentar nuestros modelos predictivos.
     </p>
     
-    <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls, .csv">
+    <input type="file" id="fileInput" class="hidden" accept=".xlsx">
     
     <div class="file-drop-area" id="dropArea">
       <i class="fas fa-cloud-upload-alt text-3xl text-blue-400 mb-3"></i>
@@ -142,7 +142,7 @@
         Seleccionar archivo
       </button>
       <p class="text-gray-500 mt-3 text-xs">
-        Formatos soportados: .xlsx, .xls, .csv (Máx. 10MB)
+        Formatos soportados: .xlsx (Máx. 10MB)
       </p>
     </div>
     
@@ -339,44 +339,76 @@
         filePreview.style.display = 'none';
       });
       
-      // Upload button
-      uploadBtn.addEventListener('click', function() {
-        if (!fileInput.files.length) {
-          showMessage('Por favor selecciona un archivo primero', 'error');
-          return;
+  uploadBtn.addEventListener('click', function () {
+  const file = fileInput.files[0];
+
+  if (!file) {
+    showMessage('Por favor selecciona un archivo primero', 'error');
+    return;
+  }
+
+  // Validar extensión
+  const isXlsx = file.name.endsWith('.xlsx');
+  if (!isXlsx) {
+    showMessage('Tipo de archivo no válido. Solo se permite .xlsx', 'error');
+    return;
+  }
+
+  // Validar tamaño
+  if (file.size > 10 * 1024 * 1024) {
+    showMessage('El archivo es demasiado grande. Tamaño máximo: 10MB', 'error');
+    return;
+  }
+
+  // Mostrar indicador de carga
+  loadingIndicator.style.display = 'block';
+  uploadBtn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('archivo', file);
+
+  fetch('/cargar-excel', {
+    method: 'POST',
+    body: formData
+  })
+    .then(async response => {
+      const data = await response.json();
+
+      if (!response.ok) {
+        const msg = data.error || 'Error al subir el archivo.';
+        showMessage(msg, 'error');
+
+        if (data.faltantes) {
+          console.warn('Columnas faltantes:', data.faltantes);
         }
-        
-        const file = fileInput.files[0];
-        const validTypes = [
-          'application/vnd.ms-excel',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'text/csv',
-          'application/vnd.ms-excel.sheet.macroEnabled.12'
-        ];
-        
-        if (!validTypes.includes(file.type)) {
-          showMessage('Tipo de archivo no válido. Por favor sube un archivo .xlsx o .csv', 'error');
-          return;
-        }
-        
-        if (file.size > 10 * 1024 * 1024) {
-          showMessage('El archivo es demasiado grande. Tamaño máximo: 10MB', 'error');
-          return;
-        }
-        
-        // Show loading indicator
-        loadingIndicator.style.display = 'block';
-        uploadBtn.disabled = true;
-        
-        // Simulate upload processing
-        setTimeout(function() {
-          loadingIndicator.style.display = 'none';
-          uploadBtn.disabled = false;
-          showMessage('¡Archivo procesado con éxito!', 'success');
-          closeUploadModal();
-        }, 2000);
-      });
-      
+        return;
+      }
+
+      const mensaje = data.mensaje || 'Archivo procesado correctamente';
+      const filas = data.nuevas_filas !== undefined ? ` (${data.nuevas_filas} filas nuevas)` : '';
+      if(filas === '') {
+        showMessage(mensaje, 'error');
+      }else{
+        showMessage(`${mensaje}${filas}`, 'success');
+      }
+      closeUploadModal?.();
+    })
+    .catch(error => {
+      console.error('Error al enviar el archivo:', error);
+      showMessage('Error de red o del servidor.', 'error');
+    })
+    .finally(() => {
+      loadingIndicator.style.display = 'none';
+      uploadBtn.disabled = false;
+    });
+});
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (file) {
+    showMessage(`Archivo seleccionado: ${file.name}`, 'info');
+  }
+});
       function closeUploadModal() {
         uploadModal.style.display = 'none';
         uploadOverlay.style.display = 'none';
@@ -427,7 +459,7 @@
         
         setTimeout(() => {
           messageContainer.style.display = 'none';
-        }, 3000);
+        }, 6000);
       }
     });
   </script>
